@@ -1,0 +1,7 @@
+{
+  "name": "smart-technical-mobile",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
