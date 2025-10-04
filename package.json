@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "test:e2e": "cypress run",
+    "mock": "prism mock mocks/openapi.yaml -p 4010",
     "test:unit": "vitest",
     "lint": "eslint ."
   },
@@ -19,12 +19,15 @@
     "@capacitor/status-bar": "7.0.3",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",
+    "axios": "^1.12.2",
     "ionicons": "^7.0.0",
+    "pinia": "^3.0.3",
     "vue": "^3.3.0",
     "vue-router": "^4.2.0"
   },
   "devDependencies": {
     "@capacitor/cli": "7.4.3",
+    "@stoplight/prism-cli": "^5.14.2",
     "@vitejs/plugin-legacy": "^5.0.0",
     "@vitejs/plugin-vue": "^4.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",

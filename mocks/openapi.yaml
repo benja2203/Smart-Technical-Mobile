@@ -1,0 +1,199 @@
+openapi: 3.0.3
+info:
+  title: Smart Technical API (mock)
+  version: 1.0.0
+servers:
+  - url: http://localhost:4010
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                username: { type: string }
+                password: { type: string }
+              required: [password]
+      responses:
+        "200":
+          description: Tokens emitidos
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+              examples:
+                ok:
+                  value:
+                    access_token: "mock_access_token_123"
+                    refresh_token: "mock_refresh_token_456"
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token: { type: string }
+              required: [refresh_token]
+      responses:
+        "200":
+          description: Nuevo access token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+              examples:
+                ok:
+                  value:
+                    access_token: "mock_access_token_789"
+                    refresh_token: "mock_refresh_token_456"
+  /api/v1/me:
+    get:
+      summary: Usuario autenticado
+      responses:
+        "200":
+          description: Usuario actual
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+              examples:
+                me:
+                  value:
+                    id: 1
+                    name: "Técnico Demo"
+                    email: "tech@example.com"
+                    role: "technician"
+  /api/v1/tickets:
+    get:
+      summary: Listado de tickets
+      parameters:
+        - in: query
+          name: mine
+          schema: { type: boolean }
+          example: true
+      responses:
+        "200":
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Ticket" }
+              examples:
+                demo:
+                  value:
+                    - id: 101
+                      title: "Cambio de router"
+                      status: "in_progress"
+                      updated_at: "2025-10-01T12:30:00Z"
+                    - id: 102
+                      title: "Instalación impresora"
+                      status: "open"
+                      updated_at: "2025-10-01T09:00:00Z"
+  /api/v1/tickets/{id}:
+    get:
+      summary: Detalle ticket
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Ticket
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+              examples:
+                demo:
+                  value:
+                    id: 101
+                    title: "Cambio de router"
+                    status: "in_progress"
+                    updated_at: "2025-10-01T12:30:00Z"
+                    description: "Cliente reporta caída de internet."
+  /api/v1/tickets/{id}/status:
+    patch:
+      summary: Cambiar estado del ticket
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, in_progress, on_hold, resolved, closed]
+              required: [status]
+      responses:
+        "200":
+          description: Ticket actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+  /api/v1/tickets/{id}/comments:
+    post:
+      summary: Agregar comentario a ticket
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string }
+              required: [message]
+      responses:
+        "201":
+          description: Comentario creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Comment" }
+
+components:
+  schemas:
+    AuthTokens:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+      required: [access_token]
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string }
+    Ticket:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status: { type: string }
+        updated_at: { type: string }
+        description: { type: string }
+    Comment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        ticket_id: { type: integer, example: 101 }
+        message: { type: string, example: "Equipo en ruta." }
+        created_at: { type: string, example: "2025-10-01T13:05:00Z" }
