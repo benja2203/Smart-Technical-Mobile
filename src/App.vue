@@ -20,9 +20,6 @@
             <ion-item router-link="/tabs/calendar" router-direction="root">
               <ion-icon name="calendar-outline" slot="start" /><ion-label>Calendario</ion-label>
             </ion-item>
-            <ion-item router-link="/menu/vehicle" router-direction="forward">
-              <ion-icon name="car-outline" slot="start" /><ion-label>Vehículo asignado</ion-label>
-            </ion-item>
             <ion-item router-link="/menu/grafana" router-direction="forward">
               <ion-icon name="speedometer-outline" slot="start" /><ion-label>Grafana</ion-label>
             </ion-item>

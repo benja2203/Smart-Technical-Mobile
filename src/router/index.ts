@@ -19,7 +19,6 @@ const routes = [
   },
 
   // Rutas accesibles desde el menú (fuera de tabs)
-  { path: '/menu/vehicle', component: () => import('@/pages/VehicleAssigned.vue'), meta: { auth: true } },
   { path: '/menu/grafana', component: () => import('@/pages/Grafana.vue'), meta: { auth: true } },
 
   { path: '/', redirect: '/tabs' }
