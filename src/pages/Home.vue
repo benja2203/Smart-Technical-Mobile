@@ -8,7 +8,7 @@
     </ion-header>
 
     <ion-content class="ion-padding">
-      <!-- Loading skeleton -->
+      <!-- Loading -->
       <div v-if="loading">
         <ion-skeleton-text animated style="height:120px"></ion-skeleton-text>
         <ion-skeleton-text animated class="ion-margin-top" style="height:120px"></ion-skeleton-text>
@@ -17,34 +17,60 @@
       </div>
 
       <ion-grid v-else>
-        <ion-row class="ion-justify-content-center ion-align-items-stretch" >
-          <!-- 1) Personal en línea -->
+        <ion-row class="ion-justify-content-center ion-align-items-stretch">
+
+          <!-- Visitas de hoy (lista) -->
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title>Personal en línea</ion-card-title>
-                <ion-card-subtitle>Técnicos conectados</ion-card-subtitle>
+                <ion-card-title>Visitas de hoy</ion-card-title>
+                <ion-card-subtitle>{{ data.visitsToday.length }} asignadas</ion-card-subtitle>
               </ion-card-header>
+              <ion-list v-if="data.visitsToday.length">
+                <ion-item v-for="v in data.visitsToday" :key="v.id">
+                  <ion-icon name="location-outline" slot="start" />
+                  <ion-label>
+                    <h3>{{ v.client }}</h3>
+                    <p class="ion-text-wrap">{{ v.address }}</p>
+                    <small>{{ formatDate(v.window_from) }} – {{ formatDate(v.window_to) }}</small>
+                  </ion-label>
+                  <ion-buttons slot="end">
+                    <ion-button fill="clear" @click="openMaps(v)">
+                      <ion-icon name="navigate-outline" slot="icon-only" />
+                    </ion-button>
+                    <ion-button v-if="v.contact_phone" fill="clear" @click="callContact(v)">
+                      <ion-icon name="call-outline" slot="icon-only" />
+                    </ion-button>
+                  </ion-buttons>
+                </ion-item>
+              </ion-list>
+              <ion-card-content v-else>
+                <p class="ion-text-muted">No tienes visitas asignadas para hoy.</p>
+              </ion-card-content>
+
+              <!-- placeholder para futura IA/optimización -->
               <ion-card-content>
-                <div class="kpi">
-                  <div class="kpi-value">{{ data.summary.onlineStaff }}</div>
-                  <div class="kpi-label">en línea</div>
-                </div>
-
-                <ion-chip color="primary" class="ion-margin-top">
-                  <ion-icon name="car-outline"></ion-icon>
-                  <ion-label>Vehículos ocupados: {{ data.summary.vehiclesUsed }}/{{ data.summary.vehiclesTotal }}</ion-label>
-                </ion-chip>
-
-                <ion-chip color="tertiary" class="ion-margin-start">
-                  <ion-icon name="people-outline"></ion-icon>
-                  <ion-label>En terreno: {{ data.summary.techsOnField }}/{{ data.summary.techsTotal }}</ion-label>
-                </ion-chip>
+                <ion-button expand="block" fill="outline" disabled>Ruta óptima (próximamente)</ion-button>
               </ion-card-content>
             </ion-card>
           </ion-col>
 
-          <!-- 2) Último ticket -->
+          <!-- Mi jornada -->
+          <ion-col size="12" size-md="6">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Mi jornada</ion-card-title>
+                <ion-card-subtitle>Hoy</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-chip color="primary"><ion-label>Asignados: {{ data.day.assignedToday }}</ion-label></ion-chip>
+                <ion-chip color="success" class="ion-margin-start"><ion-label>Resueltos: {{ data.day.resolvedToday }}</ion-label></ion-chip>
+                <ion-chip color="warning" class="ion-margin-start"><ion-label>Pendientes: {{ data.day.pendingToday }}</ion-label></ion-chip>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+
+          <!-- Último ticket -->
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
@@ -62,12 +88,10 @@
             </ion-card>
           </ion-col>
 
-          <!-- 3) Anuncios -->
+          <!-- Anuncios -->
           <ion-col size="12" size-md="6">
             <ion-card>
-              <ion-card-header>
-                <ion-card-title>Anuncios</ion-card-title>
-              </ion-card-header>
+              <ion-card-header><ion-card-title>Anuncios</ion-card-title></ion-card-header>
               <ion-list v-if="data.announcements?.length">
                 <ion-item v-for="a in data.announcements" :key="a.id" lines="full">
                   <ion-icon name="megaphone-outline" slot="start"></ion-icon>
@@ -84,12 +108,10 @@
             </ion-card>
           </ion-col>
 
-          <!-- 4) Vehículo asignado (en Inicio, no página aparte) -->
+          <!-- Vehículo asignado -->
           <ion-col size="12" size-md="6">
             <ion-card>
-              <ion-card-header>
-                <ion-card-title>Vehículo asignado</ion-card-title>
-              </ion-card-header>
+              <ion-card-header><ion-card-title>Vehículo asignado</ion-card-title></ion-card-header>
               <ion-card-content v-if="data.vehicle">
                 <ion-item lines="none">
                   <ion-icon name="car-outline" slot="start"></ion-icon>
@@ -105,6 +127,7 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
+
         </ion-row>
       </ion-grid>
     </ion-content>
@@ -113,18 +136,18 @@
 
 <script setup lang="ts">
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonMenuButton,
-  IonContent, IonGrid, IonRow, IonCol,
-  IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
-  IonChip, IonIcon, IonLabel, IonButton, IonList, IonItem, IonBadge, IonSkeletonText
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonMenuButton, IonContent,
+  IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
+  IonButton, IonList, IonItem, IonLabel, IonIcon, IonBadge, IonChip, IonSkeletonText
 } from '@ionic/vue';
 import { ref, computed, onMounted } from 'vue';
-import { fetchHomeData, type HomeData } from '@/services/home';
+import { fetchHomeData, type HomeData, type Visit } from '@/services/home';
 import { formatDate } from '@/utils/format';
 
 const loading = ref(true);
 const data = ref<HomeData>({
-  summary: { onlineStaff: 0, techsOnField: 0, techsTotal: 0, vehiclesUsed: 0, vehiclesTotal: 0 },
+  visitsToday: [],
+  day: { assignedToday: 0, resolvedToday: 0, pendingToday: 0 },
   lastTicket: null, announcements: [], vehicle: null
 });
 
@@ -145,15 +168,17 @@ const vehicleColor = computed(() => {
   }
 });
 
+function openMaps(v: Visit) {
+  if (v.lat && v.lon) window.open(`https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lon}`, '_blank');
+  else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}`, '_blank');
+}
+function callContact(v: Visit) {
+  if (v.contact_phone) window.location.href = `tel:${v.contact_phone}`;
+}
+
 onMounted(async () => {
   loading.value = true;
   try { data.value = await fetchHomeData(); }
   finally { loading.value = false; }
 });
 </script>
-
-<style scoped>
-.kpi { display: flex; align-items: baseline; gap: 10px; }
-.kpi-value { font-size: 2.4rem; font-weight: 800; }
-.kpi-label { color: var(--ion-color-medium); }
-</style>
