@@ -6,7 +6,9 @@ const REFRESH_ENABLED = String(import.meta.env.VITE_REFRESH_ENABLED || 'true') =
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: false
+  withCredentials: false,
+  headers: { Accept: 'application/json' },
+  timeout: 15000
 })
 
 export function setAuth(token?: string | null) {

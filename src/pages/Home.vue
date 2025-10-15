@@ -24,18 +24,22 @@
             <ion-card>
               <ion-card-header>
                 <ion-card-title>Visitas de hoy</ion-card-title>
-                <ion-card-subtitle>{{ data.visitsToday.length }} asignadas</ion-card-subtitle>
+                <ion-card-subtitle>{{ (data.visitsToday?.length || 0) }} asignadas</ion-card-subtitle>
               </ion-card-header>
-              <ion-list v-if="data.visitsToday.length">
+
+              <ion-list v-if="data.visitsToday && data.visitsToday.length">
                 <ion-item v-for="v in data.visitsToday" :key="v.id">
                   <ion-icon name="location-outline" slot="start" />
                   <ion-label>
-                    <h3>{{ v.client }}</h3>
-                    <p class="ion-text-wrap">{{ v.address }}</p>
-                    <small>{{ formatDate(v.window_from) }} – {{ formatDate(v.window_to) }}</small>
+                    <h3>{{ v.client || 'Cliente' }}</h3>
+                    <p class="ion-text-wrap">{{ v.address || 'Sin dirección' }}</p>
+                    <small>
+                      {{ formatTime(v.window_from) }}
+                      <span v-if="v.window_to"> – {{ formatTime(v.window_to) }}</span>
+                    </small>
                   </ion-label>
                   <ion-buttons slot="end">
-                    <ion-button fill="clear" @click="openMaps(v)">
+                    <ion-button fill="clear" @click="openMaps(v)" :disabled="!canOpenMaps(v)">
                       <ion-icon name="navigate-outline" slot="icon-only" />
                     </ion-button>
                     <ion-button v-if="v.contact_phone" fill="clear" @click="callContact(v)">
@@ -44,6 +48,7 @@
                   </ion-buttons>
                 </ion-item>
               </ion-list>
+
               <ion-card-content v-else>
                 <p class="ion-text-muted">No tienes visitas asignadas para hoy.</p>
               </ion-card-content>
@@ -139,46 +144,61 @@ import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonMenuButton, IonContent,
   IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
   IonButton, IonList, IonItem, IonLabel, IonIcon, IonBadge, IonChip, IonSkeletonText
-} from '@ionic/vue';
-import { ref, computed, onMounted } from 'vue';
-import { fetchHomeData, type HomeData, type Visit } from '@/services/home';
-import { formatDate } from '@/utils/format';
+} from '@ionic/vue'
+import { ref, computed, onMounted } from 'vue'
+import { fetchHomeData, type HomeData, type Visit } from '@/services/home'
+import { formatDate } from '@/utils/format'
 
-const loading = ref(true);
+const loading = ref(true)
 const data = ref<HomeData>({
   visitsToday: [],
   day: { assignedToday: 0, resolvedToday: 0, pendingToday: 0 },
   lastTicket: null, announcements: [], vehicle: null
-});
+})
 
 const vehicleStatusLabel = computed(() => {
   switch (data.value.vehicle?.status) {
-    case 'ok': return 'Disponible';
-    case 'in_use': return 'En uso';
-    case 'maintenance': return 'Mantención';
-    default: return '—';
+    case 'ok': return 'Disponible'
+    case 'in_use': return 'En uso'
+    case 'maintenance': return 'Mantención'
+    default: return '—'
   }
-});
+})
 const vehicleColor = computed(() => {
   switch (data.value.vehicle?.status) {
-    case 'ok': return 'success';
-    case 'in_use': return 'warning';
-    case 'maintenance': return 'danger';
-    default: return 'medium';
+    case 'ok': return 'success'
+    case 'in_use': return 'warning'
+    case 'maintenance': return 'danger'
+    default: return 'medium'
   }
-});
+})
+
+// ---- helpers para Visitas ----
+const formatTime = (val?: string | Date | null) => {
+  if (!val) return '—'
+  const d = typeof val === 'string' ? new Date(val) : val
+  if (!d || isNaN(d.getTime())) return '—'
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+const canOpenMaps = (v: Visit) =>
+  Boolean((v.lat != null && v.lon != null) || v.address)
 
 function openMaps(v: Visit) {
-  if (v.lat && v.lon) window.open(`https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lon}`, '_blank');
-  else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}`, '_blank');
+  let url = ''
+  if (v.lat != null && v.lon != null) {
+    url = `https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lon}`
+  } else if (v.address) {
+    url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.address)}`
+  }
+  if (url) window.open(url, '_blank', 'noopener')
 }
 function callContact(v: Visit) {
-  if (v.contact_phone) window.location.href = `tel:${v.contact_phone}`;
+  if (v.contact_phone) window.location.href = `tel:${v.contact_phone}`
 }
 
 onMounted(async () => {
-  loading.value = true;
-  try { data.value = await fetchHomeData(); }
-  finally { loading.value = false; }
-});
+  loading.value = true
+  try { data.value = await fetchHomeData() }
+  finally { loading.value = false }
+})
 </script>

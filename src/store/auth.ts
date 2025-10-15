@@ -49,57 +49,49 @@ export const useAuth = defineStore('auth', {
       }
     },
 
-    async login(username: string, password: string) {
-      this.loading = true
-      this.error = null
-      try {
-        // Payload dinámico: { email: "...", password: "..." } o { username: "...", password: "..." }
-        const payload: Record<string, string> = { password }
-        payload[USERNAME_FIELD] = username
+async login(username: string, password: string) {
+  this.loading = true
+  this.error = null
+  try {
+    // El backend espera form-urlencoded: email + password
+    const form = new URLSearchParams()
+    form.append('email', username)
+    form.append('password', password)
 
-        const { data } = await api.post('/auth/login', payload)
+    const { data } = await api.post('/auth/login', form, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
 
-        // Caso 1: backend entrega token (access_token | token | access)
-        const at = (data?.access_token || data?.token || data?.access || '') as string
-        const rt = (data?.refresh_token || '') as string
+    // Token (tu API devuelve 'token' y 'token_type')
+    const at: string = data?.token || ''
+    if (!at) {
+      throw new Error('Login sin token. Verifica la respuesta del backend.')
+    }
 
-        if (at) {
-          this.access = at
-          this.refresh = rt || null
-          localStorage.setItem('access_token', at)
-          if (rt) localStorage.setItem('refresh_token', rt)
-          setAuth(at) // Authorization: Bearer <token>
-        } else {
-          // Caso 2: backend NO entrega token → modo simple (sin Authorization)
-          this.access = 'simple'
-          this.refresh = null
-          localStorage.setItem('access_token', this.access)
-          localStorage.removeItem('refresh_token')
-          setAuth(undefined) // no enviamos Authorization
-        }
+    this.access = at
+    this.refresh = null
+    localStorage.setItem('access_token', at)
+    localStorage.removeItem('refresh_token')
+    setAuth(at) // Authorization: Bearer <token>
 
-        // Usuario: si viene en /auth/login úsalo; si no, intenta /me o /users/me
-        if (data?.user) {
-          this.user = data.user as AuthUser
-        } else {
-          try {
-            const me = await api.get('/me')
-            this.user = me.data as AuthUser
-          } catch {
-            const me2 = await api.get('/users/me')
-            this.user = me2.data as AuthUser
-          }
-        }
-
-        localStorage.setItem('user', JSON.stringify(this.user))
-      } catch (err) {
-        const e = err as AxiosError<any>
-        this.error = (e.response?.data as any)?.detail || e.message || 'Error de inicio de sesión'
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
+    // Usuario viene en la misma respuesta
+    this.user = data?.user ?? null
+    if (!this.user?.id) {
+      // si no trae id, lo guardamos igual para pasar el guard, pero idealmente la API debe incluir id
+      console.warn('La respuesta de login no incluye user.id')
+    }
+    localStorage.setItem('user', JSON.stringify(this.user))
+  } catch (err: any) {
+    console.error('Login error:', err?.response?.data ?? err.message)
+    this.error =
+      err?.response?.data?.detail ||
+      err?.message ||
+      'Credenciales inválidas o API no disponible.'
+    throw err
+  } finally {
+    this.loading = false
+  }
+},
 
     logout() {
       this.user = null
