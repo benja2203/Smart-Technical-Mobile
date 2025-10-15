@@ -55,7 +55,9 @@
 
               <!-- placeholder para futura IA/optimización -->
               <ion-card-content>
-                <ion-button expand="block" fill="outline" disabled>Ruta óptima (próximamente)</ion-button>
+                <ion-button expand="block" fill="outline" router-link="/tabs/map">
+                  Ver ruta sugerida
+                </ion-button>
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -68,9 +70,8 @@
                 <ion-card-subtitle>Hoy</ion-card-subtitle>
               </ion-card-header>
               <ion-card-content>
-                <ion-chip color="primary"><ion-label>Asignados: {{ data.day.assignedToday }}</ion-label></ion-chip>
-                <ion-chip color="success" class="ion-margin-start"><ion-label>Resueltos: {{ data.day.resolvedToday }}</ion-label></ion-chip>
-                <ion-chip color="warning" class="ion-margin-start"><ion-label>Pendientes: {{ data.day.pendingToday }}</ion-label></ion-chip>
+                <ion-chip color="success" class="ion-margin-start"><ion-label>Activos: {{ data.day.assignedToday }}</ion-label></ion-chip>
+                <ion-chip color="warning" class="ion-margin-start"><ion-label>Terminados: {{ data.day.resolvedToday }}</ion-label></ion-chip>
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -96,42 +97,45 @@
           <!-- Anuncios -->
           <ion-col size="12" size-md="6">
             <ion-card>
-              <ion-card-header><ion-card-title>Anuncios</ion-card-title></ion-card-header>
-              <ion-list v-if="data.announcements?.length">
-                <ion-item v-for="a in data.announcements" :key="a.id" lines="full">
-                  <ion-icon name="megaphone-outline" slot="start"></ion-icon>
-                  <ion-label>
-                    <h3>{{ a.title }}</h3>
-                    <p class="ion-text-wrap">{{ a.body }}</p>
-                    <small class="ion-text-muted">{{ formatDate(a.created_at) }}</small>
-                  </ion-label>
-                </ion-item>
-              </ion-list>
-              <ion-card-content v-else>
-                <p class="ion-text-muted">No hay anuncios por ahora.</p>
+              <ion-card-header>
+                <ion-card-title>Anuncios</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div v-if="data.announcements?.length === 0">
+                  No hay anuncios por ahora.
+                </div>
+                <div v-else class="space-y-2">
+                  <div v-for="a in data.announcements" :key="a.id" style="margin-bottom: 8px;">
+                    <div style="font-weight:600">{{ a.title }}</div>
+                    <div style="font-size: 12px; opacity: .7">{{ formatDate(a.created_at) }}</div>
+                    <div v-if="a.body" style="margin-top: 4px;">{{ a.body }}</div>
+                    <br>
+                  </div>
+                </div>
               </ion-card-content>
             </ion-card>
           </ion-col>
 
-          <!-- Vehículo asignado -->
+
+            <!-- Vehículo asignado -->
           <ion-col size="12" size-md="6">
             <ion-card>
-              <ion-card-header><ion-card-title>Vehículo asignado</ion-card-title></ion-card-header>
-              <ion-card-content v-if="data.vehicle">
-                <ion-item lines="none">
-                  <ion-icon name="car-outline" slot="start"></ion-icon>
-                  <ion-label>
-                    <p>Patente</p><h2>{{ data.vehicle.plate }}</h2>
-                    <p class="ion-margin-top">Modelo</p><h3>{{ data.vehicle.model }}</h3>
-                  </ion-label>
-                  <ion-badge :color="vehicleColor">{{ vehicleStatusLabel }}</ion-badge>
-                </ion-item>
-              </ion-card-content>
-              <ion-card-content v-else>
-                <p class="ion-text-muted">Sin vehículo asignado.</p>
+              <ion-card-header>
+                <ion-card-title>Vehículo asignado</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div v-if="!data.vehicle">
+                  Sin vehículo asignado.
+                </div>
+                <div v-else>
+                  <div><strong>Patente:</strong> {{ data.vehicle.plate }}</div>
+                  <div v-if="data.vehicle.model"><strong>Modelo:</strong> {{ data.vehicle.model }}</div>
+                  <div v-if="data.vehicle.status"><strong>Estado:</strong> {{ vehicleStatus(data.vehicle.status) }}</div>
+                </div>
               </ion-card-content>
             </ion-card>
           </ion-col>
+
 
         </ion-row>
       </ion-grid>
@@ -147,7 +151,6 @@ import {
 } from '@ionic/vue'
 import { ref, computed, onMounted } from 'vue'
 import { fetchHomeData, type HomeData, type Visit } from '@/services/home'
-import { formatDate } from '@/utils/format'
 
 const loading = ref(true)
 const data = ref<HomeData>({
@@ -173,6 +176,8 @@ const vehicleColor = computed(() => {
   }
 })
 
+
+
 // ---- helpers para Visitas ----
 const formatTime = (val?: string | Date | null) => {
   if (!val) return '—'
@@ -194,6 +199,19 @@ function openMaps(v: Visit) {
 }
 function callContact(v: Visit) {
   if (v.contact_phone) window.location.href = `tel:${v.contact_phone}`
+}
+function formatDate(s?: string) {
+  if (!s) return ''
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? '' : d.toLocaleString()
+}
+
+function vehicleStatus(s?: string) {
+  const v = (s || '').toLowerCase()
+  if (v === 'ok') return 'OK'
+  if (v === 'maintenance') return 'En mantención'
+  if (v === 'in_use') return 'En uso'
+  return '—'
 }
 
 onMounted(async () => {

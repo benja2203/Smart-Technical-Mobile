@@ -25,3 +25,40 @@ export async function fetchMyTickets(): Promise<Ticket[]> {
     created_at: t.created_at ?? t.createdAt ?? ''
   }))
 }
+
+
+export type TicketRow = {
+  id: number
+  title: string
+  description?: string
+  address?: string
+  id_status?: number
+  status?: string
+  priority?: string
+  fecha_realizar_servicio?: string
+  fecha_termino_servicio?: string
+  created_at?: string
+}
+
+// Filtros de estado soportados en la UI
+export type TicketFilter = 'all' | 'active' | 'terminated'
+
+export async function listMyTickets(filter: TicketFilter = 'all'): Promise<TicketRow[]> {
+  const userId = useAuth().user?.id
+  if (!userId) return []
+  const params: any = { user_id: userId, limit: 100 }
+  if (filter !== 'all') params.status = filter
+  try {
+    const { data } = await api.get('/tickets/mine', { params })
+    return (data ?? []) as TicketRow[]
+  } catch {
+    return [] // no rompas el render
+  }
+}
+
+
+
+export async function resolveTicket(id: number): Promise<TicketRow> {
+  const { data } = await api.put(`/tickets/${id}/resolve`)
+  return data as TicketRow
+}

@@ -1,10 +1,13 @@
-import { createRouter, createWebHistory } from '@ionic/vue-router';
-import TabsPage from '@/views/TabsPage.vue';
-import { useAuth } from '@/store/auth';
+// src/router/index.ts
+import { createRouter, createWebHistory } from '@ionic/vue-router'
+import TabsPage from '@/views/TabsPage.vue'
+import { useAuth } from '@/store/auth'
 
 const routes = [
+  // Login
   { path: '/login', component: () => import('@/pages/Login.vue') },
 
+  // Tabs
   {
     path: '/tabs/',
     component: TabsPage,
@@ -13,21 +16,35 @@ const routes = [
       { path: '', redirect: '/tabs/home' },
       { path: 'home', component: () => import('@/pages/Home.vue') },
       { path: 'tickets', component: () => import('@/pages/Tickets.vue') },
+
+      // Mapa
       { path: 'map', component: () => import('@/pages/Map.vue') },
+
+      // Redirección legacy (por si algún enlace viejo apunta a RouteMap)
+      { path: 'RouteMap', redirect: '/tabs/map' },
+
       { path: 'calendar', component: () => import('@/pages/Calendar.vue') },
-    ]
+    ],
   },
 
-  // Rutas accesibles desde el menú (fuera de tabs)
+  // Rutas accesibles desde el menú (fuera de tabs) — agrega aquí si tienes otras
 
-  { path: '/', redirect: '/tabs' }
-];
+  // Root → tabs
+  { path: '/', redirect: '/tabs' },
 
-const router = createRouter({ history: createWebHistory(import.meta.env.BASE_URL), routes });
+  // Catch-all opcional para evitar pantallas en negro en rutas desconocidas
+  { path: '/:pathMatch(.*)*', redirect: '/tabs' },
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+})
 
 router.beforeEach((to) => {
-  const auth = useAuth(); auth.boot();
-  if (to.meta.auth && !auth.access) return '/login';
-});
+  const auth = useAuth()
+  auth.boot()
+  if (to.meta.auth && !auth.access) return '/login'
+})
 
-export default router;
+export default router

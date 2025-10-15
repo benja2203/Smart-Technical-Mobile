@@ -5,6 +5,24 @@ import { createPinia } from 'pinia';
 
 import { IonicVue } from '@ionic/vue';
 
+import { addIcons } from 'ionicons'
+import {
+  homeOutline,
+  mapOutline,
+  listOutline,
+  calendarOutline,
+  navigateOutline,
+} from 'ionicons/icons'
+
+addIcons({
+  'home-outline': homeOutline,
+  'map-outline': mapOutline,
+  'list-outline': listOutline,
+  'calendar-outline': calendarOutline,
+  'navigate-outline': navigateOutline,
+})
+import 'leaflet/dist/leaflet.css'
+
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
 

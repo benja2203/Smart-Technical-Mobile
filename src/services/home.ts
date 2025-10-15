@@ -2,13 +2,10 @@
 import { api } from '@/api/axios'
 import { useAuth } from '@/store/auth'
 import { endpoints } from '@/config/api-map'
+import type { Announcement } from '@/services/announcements'
+import type { VehicleAssigned } from '@/services/vehicle'
 
-// TIP: asegúrate que endpoints tenga:
-// scheduleToday: '/schedule/today',
-// scheduleSummary: '/schedule/summary/today',
-// scheduleLast: '/schedule/last',
-// announcements: '/announcement',
-// vehicleAssigned: '/assignments/vehicle'
+// TIP: endpoints.announcements debe ser '/announcements'
 
 export type Visit = {
   id: number
@@ -22,8 +19,6 @@ export type Visit = {
 }
 export type DaySummary = { assignedToday: number; resolvedToday: number; pendingToday: number }
 export type TicketLite = { id: number; title: string; summary: string; created_at: string }
-export type Announcement = { id: number; title: string; body: string; created_at: string }
-export type VehicleAssigned = { plate: string; model: string; status: 'ok'|'maintenance'|'in_use'|'unknown' }
 
 export type HomeData = {
   visitsToday: Visit[]
@@ -33,16 +28,11 @@ export type HomeData = {
   vehicle: VehicleAssigned | null
 }
 
-function isValidId(v: unknown): v is number {
-  return typeof v === 'number' && Number.isFinite(v) && v > 0
-}
-
 export async function fetchHomeData(): Promise<HomeData> {
   const auth = useAuth()
   const userId = auth.user?.id
 
-  // Si no hay usuario aún, devuelve estructura vacía para no romper el render
-  if (!isValidId(userId)) {
+  if (!userId) {
     return {
       visitsToday: [],
       day: { assignedToday: 0, resolvedToday: 0, pendingToday: 0 },
@@ -52,33 +42,37 @@ export async function fetchHomeData(): Promise<HomeData> {
     }
   }
 
-  const [
-    visitsRes,
-    dayRes,
-    lastRes,
-    annRes,
-    vehRes
-  ] = await Promise.all([
+  const [visitsRes, dayRes, lastRes, annRes, vehRes] = await Promise.all([
     api.get(endpoints.scheduleToday,   { params: { user_id: userId } }).catch(() => ({ data: [] })),
     api.get(endpoints.scheduleSummary, { params: { user_id: userId } }).catch(() => ({ data: {} })),
     api.get(endpoints.scheduleLast,    { params: { user_id: userId } }).catch(() => ({ data: null })),
-    api.get(endpoints.announcements,   { params: { limit: 3 } }).catch(() => ({ data: [] })),
-    api.get(endpoints.vehicleAssigned, { params: { user_id: userId } }).catch(() => ({ data: null }))
+    api.get(endpoints.announcements,   { params: { limit: 3 } }).catch(() => ({ data: [] })), // ← usa /announcements
+    api.get(endpoints.vehicleAssigned, { params: { user_id: userId } }).catch(() => ({ data: null })),
   ])
 
-  const visits = (visitsRes.data ?? []) as Visit[]
+  // Normaliza anuncios del backend: title, description, created_at
+  const annsRaw: any[] = Array.isArray(annRes.data) ? annRes.data : []
+  const announcements: Announcement[] = annsRaw.map((a: any) => ({
+    id: a.id,
+    title: a.title ?? 'Sin título',
+    body: a.description ?? '',                 // ← description → body
+    created_at: a.created_at ?? a.createdAt ?? null,
+  }))
 
-  // Normaliza llaves por si el backend usa nombres distintos
-  const dayRaw = (dayRes.data ?? {}) as any
-  const day: DaySummary = {
-    assignedToday: Number(dayRaw.assignedToday ?? dayRaw.assigned ?? 0),
-    resolvedToday: Number(dayRaw.resolvedToday ?? dayRaw.resolved ?? 0),
-    pendingToday:  Number(dayRaw.pendingToday  ?? dayRaw.pending  ?? 0)
-  }
-
-  const lastTicket = (lastRes.data ?? null) as TicketLite | null
-  const announcements = (annRes.data ?? []) as Announcement[]
   const vehicle = (vehRes.data ?? null) as VehicleAssigned | null
 
-  return { visitsToday: visits, day, lastTicket, announcements, vehicle }
+  const dayRaw = (dayRes.data ?? {}) as any
+  const day: DaySummary = {
+    assignedToday: Number(dayRaw.assignedToday ?? 0),
+    resolvedToday: Number(dayRaw.resolvedToday ?? 0),
+    pendingToday:  Number(dayRaw.pendingToday  ?? Math.max((dayRaw.assignedToday ?? 0) - (dayRaw.resolvedToday ?? 0), 0)),
+  }
+
+  return {
+    visitsToday: (visitsRes.data ?? []) as Visit[],
+    day,
+    lastTicket: (lastRes.data ?? null) as TicketLite | null,
+    announcements,
+    vehicle
+  }
 }
