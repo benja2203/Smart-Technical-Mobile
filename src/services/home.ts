@@ -3,6 +3,13 @@ import { api } from '@/api/axios'
 import { useAuth } from '@/store/auth'
 import { endpoints } from '@/config/api-map'
 
+// TIP: asegúrate que endpoints tenga:
+// scheduleToday: '/schedule/today',
+// scheduleSummary: '/schedule/summary/today',
+// scheduleLast: '/schedule/last',
+// announcements: '/announcement',
+// vehicleAssigned: '/assignments/vehicle'
+
 export type Visit = {
   id: number
   client?: string
@@ -26,30 +33,52 @@ export type HomeData = {
   vehicle: VehicleAssigned | null
 }
 
+function isValidId(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0
+}
+
 export async function fetchHomeData(): Promise<HomeData> {
   const auth = useAuth()
   const userId = auth.user?.id
 
-  const [visits, day, lastTicket, announcements, vehicle] = await Promise.all([
-    api.get(endpoints.scheduleToday,         { params: { user_id: userId } }).then(r => r.data),
-    api.get(endpoints.scheduleSummary,       { params: { user_id: userId } }).then(r => r.data),
-    api.get(endpoints.scheduleLast,          { params: { user_id: userId } }).then(r => r.data),
-    api.get(endpoints.announcements,         { params: { limit: 3 } }).then(r => r.data),
-    api.get(endpoints.vehicleAssigned,       { params: { user_id: userId } }).then(r => r.data),
+  // Si no hay usuario aún, devuelve estructura vacía para no romper el render
+  if (!isValidId(userId)) {
+    return {
+      visitsToday: [],
+      day: { assignedToday: 0, resolvedToday: 0, pendingToday: 0 },
+      lastTicket: null,
+      announcements: [],
+      vehicle: null
+    }
+  }
+
+  const [
+    visitsRes,
+    dayRes,
+    lastRes,
+    annRes,
+    vehRes
+  ] = await Promise.all([
+    api.get(endpoints.scheduleToday,   { params: { user_id: userId } }).catch(() => ({ data: [] })),
+    api.get(endpoints.scheduleSummary, { params: { user_id: userId } }).catch(() => ({ data: {} })),
+    api.get(endpoints.scheduleLast,    { params: { user_id: userId } }).catch(() => ({ data: null })),
+    api.get(endpoints.announcements,   { params: { limit: 3 } }).catch(() => ({ data: [] })),
+    api.get(endpoints.vehicleAssigned, { params: { user_id: userId } }).catch(() => ({ data: null }))
   ])
 
-  // Si tu backend devuelve otras claves, normaliza acá:
-  const normDay: DaySummary = {
-    assignedToday: day.assignedToday ?? day.assigned ?? 0,
-    resolvedToday: day.resolvedToday ?? day.resolved ?? 0,
-    pendingToday:  day.pendingToday  ?? day.pending  ?? 0
+  const visits = (visitsRes.data ?? []) as Visit[]
+
+  // Normaliza llaves por si el backend usa nombres distintos
+  const dayRaw = (dayRes.data ?? {}) as any
+  const day: DaySummary = {
+    assignedToday: Number(dayRaw.assignedToday ?? dayRaw.assigned ?? 0),
+    resolvedToday: Number(dayRaw.resolvedToday ?? dayRaw.resolved ?? 0),
+    pendingToday:  Number(dayRaw.pendingToday  ?? dayRaw.pending  ?? 0)
   }
 
-  return {
-    visitsToday: visits,
-    day: normDay,
-    lastTicket,
-    announcements,
-    vehicle
-  }
+  const lastTicket = (lastRes.data ?? null) as TicketLite | null
+  const announcements = (annRes.data ?? []) as Announcement[]
+  const vehicle = (vehRes.data ?? null) as VehicleAssigned | null
+
+  return { visitsToday: visits, day, lastTicket, announcements, vehicle }
 }
