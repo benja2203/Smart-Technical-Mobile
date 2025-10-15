@@ -151,6 +151,9 @@ import {
 } from '@ionic/vue'
 import { ref, computed, onMounted } from 'vue'
 import { fetchHomeData, type HomeData, type Visit } from '@/services/home'
+import { useAuth } from '@/store/auth'
+import { watch } from 'vue'
+
 
 const loading = ref(true)
 const data = ref<HomeData>({
@@ -214,9 +217,19 @@ function vehicleStatus(s?: string) {
   return '—'
 }
 
-onMounted(async () => {
-  loading.value = true
-  try { data.value = await fetchHomeData() }
-  finally { loading.value = false }
+onMounted(() => {
+  const auth = useAuth()
+  auth.boot()
+  const stop = watch(
+    () => auth.user?.id,
+    async (id) => {
+      if (!id) return
+      loading.value = true
+      try { data.value = await fetchHomeData() }
+      finally { loading.value = false }
+      stop() // sólo una vez
+    },
+    { immediate: true }
+  )
 })
 </script>
