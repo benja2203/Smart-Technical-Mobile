@@ -3,14 +3,18 @@ import axios from 'axios';
 const baseURL = import.meta.env.VITE_API_URL;
 const REFRESH_ENABLED = String(import.meta.env.VITE_REFRESH_ENABLED || 'true') === 'true';
 
-export const api = axios.create({
-  baseURL,
-  timeout: 12000,
-});
 
-export function setAuth(token?: string) {
-  if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
-  else delete api.defaults.headers.common.Authorization;
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: false
+})
+
+export function setAuth(token?: string | null) {
+  if (token && token !== 'simple') {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  } else {
+    delete api.defaults.headers.common['Authorization']
+  }
 }
 
 let refreshing = false;

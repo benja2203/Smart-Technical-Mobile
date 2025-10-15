@@ -34,11 +34,14 @@ import '@ionic/vue/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import { useAuth } from './store/auth';
 
 const app = createApp(App)
   .use(IonicVue)
   .use(createPinia())
   .use(router);
+
+useAuth().boot()
 
 router.isReady().then(() => {
   app.mount('#app');
