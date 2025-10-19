@@ -17,9 +17,6 @@
             <ion-item router-link="/tabs/RouteMap" router-direction="root">
               <ion-icon name="map-outline" slot="start" /><ion-label>Mapa</ion-label>
             </ion-item>
-            <ion-item router-link="/tabs/calendar" router-direction="root">
-              <ion-icon name="calendar-outline" slot="start" /><ion-label>Calendario</ion-label>
-            </ion-item>
           </ion-menu-toggle>
         </ion-list>
       </ion-content>

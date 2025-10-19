@@ -58,6 +58,10 @@
                 <ion-button expand="block" fill="outline" router-link="/tabs/map">
                   Ver ruta sugerida
                 </ion-button>
+
+                <ion-button expand="block" fill="outline" router-link="/tabs/gmap">
+                  Ver ruta (Google)
+                </ion-button>
               </ion-card-content>
             </ion-card>
           </ion-col>
