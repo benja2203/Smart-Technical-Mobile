@@ -31,7 +31,7 @@
       <!-- Panel inferior (bottom sheet simple, sin IonModal) -->
       <div class="route-sheet-panel" :class="{ open: sheetOpen }">
         <div class="sheet-content">
-          <div class="sheet-grabber" @click="sheetOpen = false"></div>
+          <div class="sheet-grabber" @click="sheetOpen = !sheetOpen"></div>
           <div class="sheet-title">
             {{ ordered.length }} paradas programadas
           </div>
@@ -85,7 +85,7 @@ type GPolyline = google.maps.Polyline
 
 /* UI */
 const mapEl = ref<HTMLDivElement | null>(null)
-const sheetOpen = ref(true) // <- lo dejamos abierto por defecto para que lo veas SIEMPRE
+const sheetOpen = ref(true) // abierto al entrar, pero ahora con scroll inmediato
 
 /* Google Maps */
 let map: GMap | null = null
@@ -157,6 +157,8 @@ onMounted(async () => {
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
+      // 👉 mover el mapa con un solo dedo
+      gestureHandling: 'greedy'
     })
   }
 
@@ -279,6 +281,12 @@ onBeforeUnmount(clearMap)
   border: 1px solid rgba(255,255,255,.06);
   max-height: 70vh;
   overflow: auto;
+
+  /* 👉 hace que el scroll vertical funcione al tiro */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+
   padding: 10px 12px 16px 12px;
 }
 .sheet-grabber {
@@ -286,6 +294,7 @@ onBeforeUnmount(clearMap)
   margin: 4px auto 10px;
   background: rgba(255,255,255,.22);
   border: 1px solid rgba(255,255,255,.08);
+  cursor: pointer;
 }
 .sheet-title { text-align: center; font-weight: 600; opacity: .85; margin-bottom: 6px; }
 

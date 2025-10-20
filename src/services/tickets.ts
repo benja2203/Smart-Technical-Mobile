@@ -28,6 +28,8 @@ export async function fetchMyTickets(): Promise<Ticket[]> {
 
 
 export type TicketRow = {
+  latitude: null
+  longitude: null
   id: number
   title: string
   description?: string
