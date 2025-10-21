@@ -55,12 +55,8 @@
 
               <!-- placeholder para futura IA/optimización -->
               <ion-card-content>
-                <ion-button expand="block" fill="outline" router-link="/tabs/map">
-                  Ver ruta sugerida
-                </ion-button>
-
                 <ion-button expand="block" fill="outline" router-link="/tabs/gmap">
-                  Ver ruta (Google)
+                  Ver ruta
                 </ion-button>
               </ion-card-content>
             </ion-card>

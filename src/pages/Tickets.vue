@@ -172,6 +172,8 @@ import {
 import { onMounted, reactive, ref, nextTick } from 'vue'
 import { listMyTickets, resolveTicket, type TicketRow, type TicketFilter } from '@/services/tickets'
 import type { CSSProperties } from 'vue'
+import { alertController } from '@ionic/vue'
+
 
 // (opcional pero recomendado) registra íconos para evitar warnings
 import { addIcons } from 'ionicons'
@@ -228,6 +230,21 @@ function canClose(r?: TicketRow | null) {
   return !!r && !isResolved(r)
 }
 
+async function confirmClose(): Promise<boolean> {
+  const alert = await alertController.create({
+    header: 'Cerrar ticket',
+    message: '¿Seguro que quieres cerrarlo? Esta acción no se puede deshacer.',
+    buttons: [
+      { text: 'Cancelar', role: 'cancel' },
+      { text: 'Cerrar', role: 'confirm' }
+    ]
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  return role === 'confirm'
+}
+
+
 /* data */
 async function load() {
   loading.value = true
@@ -258,6 +275,9 @@ function onModalClosed() {
 
 /* acciones */
 async function closeFromTable(id: number) {
+  const ok = await confirmClose()
+  if (!ok) return
+
   loading.value = true
   let removed: TicketRow | undefined
   try {
@@ -280,7 +300,11 @@ async function closeFromTable(id: number) {
     loading.value = false
   }
 }
+
 async function closeFromModal(id: number) {
+  const ok = await confirmClose()
+  if (!ok) return
+
   try {
     await resolveTicket(id)
     toast.show = true
@@ -304,6 +328,8 @@ async function copy(text?: string) {
     toast.msg = 'No se pudo copiar'
   }
 }
+
+
 </script>
 
 <style scoped>
