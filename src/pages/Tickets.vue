@@ -76,7 +76,7 @@
         <div class="modal-root">
           <div class="modal-header">
             <strong>Ticket #{{ selected?.id }}</strong>
-            <ion-button fill="clear" size="small" @click="onModalClosed">
+            <ion-button fill="clear" size="large" @click="onModalClosed">
               <ion-icon :icon="closeOutline" />
             </ion-button>
           </div>
@@ -145,7 +145,7 @@
                 v-if="canClose(selected)"
                 class="btn btn-green"
                 @click="closeFromModal(selected.id)"
-              >
+                >
                 Cerrar ticket
               </button>
             </div>

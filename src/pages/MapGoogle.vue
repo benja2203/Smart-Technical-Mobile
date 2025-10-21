@@ -70,6 +70,7 @@
   </ion-page>
 </template>
 
+
 <script setup lang="ts">
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton,
@@ -85,7 +86,7 @@ type GPolyline = google.maps.Polyline
 
 /* UI */
 const mapEl = ref<HTMLDivElement | null>(null)
-const sheetOpen = ref(true) // abierto al entrar, pero ahora con scroll inmediato
+const sheetOpen = ref(true)
 
 /* Google Maps */
 let map: GMap | null = null
@@ -99,8 +100,9 @@ let polyShadow: GPolyline | null = null
 const visits = ref<Visit[]>([])
 const ordered = ref<Visit[]>([])
 const legs = ref<{ durationText: string; distanceText: string }[]>([])
+const techPos = ref<{ lat: number; lng: number } | null>(null)
 
-/* helpers */
+/* helpers UI */
 function fmtHour(s?: string) {
   if (!s) return '–'
   const d = new Date(s)
@@ -144,12 +146,190 @@ function focusStop(i: number) {
   sheetOpen.value = true
 }
 
+/* ---------- Geo y utilidades ---------- */
+function haversine(a: {lat:number,lng:number}, b: {lat:number,lng:number}) {
+  const R = 6371
+  const dLat = (b.lat - a.lat) * Math.PI / 180
+  const dLng = (b.lng - a.lng) * Math.PI / 180
+  const s1 = Math.sin(dLat/2), s2 = Math.sin(dLng/2)
+  const aa = s1*s1 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*s2*s2
+  return 2 * R * Math.asin(Math.sqrt(aa))
+}
+function nnOrder(start: {lat:number,lng:number}, points: Visit[]) {
+  // Nearest-neighbor ordenando Visitas (todas con lat/lon)
+  const remaining = points.slice()
+  const out: Visit[] = []
+  let cur = { ...start }
+  while (remaining.length) {
+    let bestIdx = 0, bestD = Infinity
+    for (let i=0;i<remaining.length;i++) {
+      const v = remaining[i]
+      const d = haversine(cur, { lat: v.lat!, lng: v.lon! })
+      if (d < bestD) { bestD = d; bestIdx = i }
+    }
+    const next = remaining.splice(bestIdx,1)[0]
+    out.push(next)
+    cur = { lat: next.lat!, lng: next.lon! }
+  }
+  return out
+}
+
+function fitBoundsTo(points: Array<{lat:number,lng:number}>) {
+  if (!map || points.length === 0) return
+  const b = new google.maps.LatLngBounds()
+  points.forEach(p => b.extend(p))
+  map.fitBounds(b)
+}
+
+/* ---------- Construcción de ruta ---------- */
+async function buildRoute(g: typeof google) {
+  clearMap();
+  legs.value = [];
+
+  if (!map || visits.value.length === 0) {
+    ordered.value = [];
+    return;
+  }
+
+  // 1) Origen: técnico si existe; si no, primera visita.
+  const origin = techPos.value ?? { lat: visits.value[0].lat!, lng: visits.value[0].lon! };
+
+  // 2) Paradas válidas (todas con lat/lon)
+  const stops = visits.value.filter(v => v.lat != null && v.lon != null);
+  if (stops.length === 0) {
+    ordered.value = [];
+    return;
+  }
+  if (stops.length === 1) {
+    ordered.value = stops.slice();
+    const m = placeMarker({ lat: stops[0].lat!, lng: stops[0].lon! }, stops[0].client ?? stops[0].address);
+    m?.setLabel({ text: "1", color: "#fff", fontSize: "12px", fontWeight: "700" });
+    fitBoundsTo([origin, { lat: stops[0].lat!, lng: stops[0].lon! }]);
+    sheetOpen.value = true;
+    return;
+  }
+
+  // 3) Directions service/renderer
+  if (!dirService) dirService = new g.maps.DirectionsService();
+  if (!dirRenderer) {
+    dirRenderer = new g.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,           // usamos nuestros propios marcadores numerados
+      preserveViewport: true,
+      polylineOptions: { strokeColor: "#3b82f6", strokeOpacity: 0.9, strokeWeight: 6 }
+    });
+  }
+
+  const destination = { lat: stops[stops.length - 1].lat!, lng: stops[stops.length - 1].lon! };
+  const waypoints = stops.slice(0, stops.length - 1).map(v => ({
+    location: { lat: v.lat!, lng: v.lon! },
+    stopover: true
+  }));
+
+  dirService.route(
+    {
+      origin,
+      destination,
+      waypoints,
+      travelMode: g.maps.TravelMode.DRIVING,
+      optimizeWaypoints: true,
+      drivingOptions: {
+        departureTime: new Date(),
+        trafficModel: g.maps.TrafficModel.BEST_GUESS
+      }
+    },
+    (res, status) => {
+      if (status === g.maps.DirectionsStatus.OK && res) {
+        // Pinta la ruta oficial (por calles)
+        dirRenderer!.setDirections(res);
+
+        // Orden optimizado: waypoint_order indexa "waypoints" (stops[0..n-2])
+        const order = res.routes[0]?.waypoint_order ?? [];
+        const orderedStops: Visit[] = [
+          ...order.map(i => stops[i]),
+          stops[stops.length - 1] // el destino fijo que pasamos
+        ];
+        ordered.value = orderedStops;
+
+        // Legs (duración/distancia)
+        legs.value = (res.routes[0]?.legs || []).map(l => ({
+          durationText: ((l as any).duration_in_traffic?.text) || l.duration?.text || "-",
+          distanceText: l.distance?.text || "-"
+        }));
+
+        // Marcadores numerados
+        ordered.value.forEach((v, i) => {
+          const m = placeMarker({ lat: v.lat!, lng: v.lon! }, v.client ?? v.address);
+          m?.setLabel({ text: String(i + 1), color: "#fff", fontSize: "12px", fontWeight: "700" });
+        });
+
+        // Limpia cualquier polilínea anterior nuestra
+        if (polyMain) { polyMain.setMap(null); polyMain = null; }
+        if (polyShadow) { polyShadow.setMap(null); polyShadow = null; }
+
+        // “Relieve” propio usando el detalle por steps (no overview_path)
+        const detailedPath: google.maps.LatLng[] = [];
+        const legsArr = res.routes[0]?.legs || [];
+        legsArr.forEach(leg => {
+          (leg.steps || []).forEach(step => {
+            (step.path || []).forEach(p => detailedPath.push(p));
+          });
+        });
+
+        if (detailedPath.length) {
+          polyShadow = new g.maps.Polyline({
+            path: detailedPath,
+            strokeColor: "#000000",
+            strokeOpacity: 0.25,
+            strokeWeight: 10,
+            map
+          });
+          polyMain = new g.maps.Polyline({
+            path: detailedPath,
+            strokeColor: "#2563eb",
+            strokeOpacity: 1,
+            strokeWeight: 6,
+            map
+          });
+        }
+
+        fitBoundsTo([origin, ...stops.map(v => ({ lat: v.lat!, lng: v.lon! }))]);
+        sheetOpen.value = true;
+        return;
+      }
+
+      // Fallback (si Directions falla): tu NN + polilínea simple
+      console.warn("[Directions] status:", status, res);
+      const nn = nnOrder(origin, stops);
+      ordered.value = nn;
+      const path = [origin, ...nn.map(v => ({ lat: v.lat!, lng: v.lon! }))];
+      polyShadow = new g.maps.Polyline({
+        path, strokeColor: "#000000", strokeOpacity: 0.25, strokeWeight: 10, map
+      });
+      polyMain = new g.maps.Polyline({
+        path, strokeColor: "#2563eb", strokeOpacity: 1, strokeWeight: 6, map
+      });
+      nn.forEach((v, i) => {
+        const m = placeMarker({ lat: v.lat!, lng: v.lon! }, v.client ?? v.address);
+        m?.setLabel({ text: String(i + 1), color: "#fff", fontSize: "12px", fontWeight: "700" });
+      });
+      fitBoundsTo(path);
+      sheetOpen.value = true;
+    }
+  );
+}
+
+
+
+/* ---------- Lifecycle ---------- */
 onMounted(async () => {
   const g = await loadGoogleMaps()
 
+  // 1) Datos del backend
   const home = await fetchHomeData()
   visits.value = (home.visitsToday || []).filter(canOpen)
 
+  // 2) Mapa
   if (mapEl.value) {
     map = new g.maps.Map(mapEl.value, {
       center: { lat: -33.45, lng: -70.66 },
@@ -157,83 +337,32 @@ onMounted(async () => {
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
-      // 👉 mover el mapa con un solo dedo
       gestureHandling: 'greedy'
     })
   }
 
-  clearMap()
-  legs.value = []
-
-  if (visits.value.length >= 2 && map) {
-    dirService = new g.maps.DirectionsService()
-    dirRenderer = new g.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-      preserveViewport: false,
-      polylineOptions: {
-        strokeColor: '#3b82f6',
-        strokeWeight: 6,
-        strokeOpacity: 0.9
-      }
+  // 3) Intentar geolocalización del técnico (no bloquea si falla)
+  try {
+    await new Promise<void>((resolve) => {
+      if (!navigator.geolocation) return resolve()
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          techPos.value = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+          resolve()
+        },
+        () => resolve(),
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
+      )
     })
+  } catch { /* silencioso */ }
 
-    const origin = { lat: visits.value[0].lat!, lng: visits.value[0].lon! }
-    const destination = { lat: visits.value.at(-1)!.lat!, lng: visits.value.at(-1)!.lon! }
-    const waypoints = visits.value.slice(1, -1).map(v => ({
-      location: { lat: v.lat!, lng: v.lon! }, stopover: true
-    }))
-
-    dirService.route(
-      {
-        origin, destination, waypoints,
-        travelMode: g.maps.TravelMode.DRIVING,
-        optimizeWaypoints: true
-      },
-      (res: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
-        if (status === g.maps.DirectionsStatus.OK && res) {
-          dirRenderer!.setDirections(res)
-
-          const wpOrder = res.routes[0]?.waypoint_order ?? []
-          ordered.value = [visits.value[0], ...wpOrder.map(i => visits.value[i + 1]), visits.value.at(-1)!]
-
-          legs.value = (res.routes[0]?.legs || []).map(l => ({
-            durationText: l.duration?.text || '-',
-            distanceText: l.distance?.text || '-'
-          }))
-
-          ordered.value.forEach((v, i) => {
-            const m = placeMarker({ lat: v.lat!, lng: v.lon! }, v.client ?? v.address)
-            m?.setLabel({ text: String(i + 1), color: '#fff', fontSize: '12px', fontWeight: '700' })
-          })
-
-          const path = res.routes[0]?.overview_path || []
-          if (path.length && map) {
-            polyShadow = new g.maps.Polyline({
-              path, strokeColor: '#000', strokeOpacity: 0.25, strokeWeight: 10, map
-            })
-            polyMain = new g.maps.Polyline({
-              path, strokeColor: '#2563eb', strokeOpacity: 1, strokeWeight: 6, map
-            })
-          }
-
-          sheetOpen.value = true
-        } else {
-          ordered.value = visits.value.slice()
-          ordered.value.forEach(v => placeMarker({ lat: v.lat!, lng: v.lon! }, v.client ?? v.address))
-          sheetOpen.value = true
-        }
-      }
-    )
-  } else {
-    ordered.value = visits.value.slice()
-    ordered.value.forEach(v => placeMarker({ lat: v.lat!, lng: v.lon! }, v.client ?? v.address))
-    sheetOpen.value = true
-  }
+  // 4) Construir ruta
+  await buildRoute(g)
 })
 
 onBeforeUnmount(clearMap)
 </script>
+
 
 <style scoped>
 .map {

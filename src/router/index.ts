@@ -16,8 +16,6 @@ const routes = [
       { path: '', redirect: '/tabs/home' },
       { path: 'home', component: () => import('@/pages/Home.vue') },
       { path: 'tickets', component: () => import('@/pages/Tickets.vue') },
-      // Mapa
-      { path: 'map', component: () => import('@/pages/Map.vue') },
       // Redirección legacy (por si algún enlace viejo apunta a RouteMap)
       { path: 'gmap', component: () => import('@/pages/MapGoogle.vue') },
       { path: 'calendar', component: () => import('@/pages/Calendar.vue') },
