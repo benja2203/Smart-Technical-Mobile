@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { trackEvent } from "@/services/metricsClient";
 
 const baseURL = import.meta.env.VITE_API_URL;
 const REFRESH_ENABLED = String(import.meta.env.VITE_REFRESH_ENABLED || 'true') === 'true';
@@ -51,3 +52,25 @@ api.interceptors.response.use(
     return Promise.reject(err);
   }
 );
+
+
+const instance = axios.create({
+  baseURL: import.meta.env?.VITE_API_BASE || "https://smarttechnical.up.railway.app",
+});
+
+// ⬇️ Agrega este interceptor
+instance.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    try {
+      await trackEvent("api_error", {
+        code: error?.response?.status,
+        url: error?.config?.url,
+        method: error?.config?.method,
+      });
+    } catch {}
+    return Promise.reject(error);
+  }
+);
+
+export default instance;

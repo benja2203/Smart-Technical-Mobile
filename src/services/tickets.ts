@@ -2,6 +2,7 @@
 import { api } from '@/api/axios'
 import { useAuth } from '@/store/auth'
 import { endpoints } from '@/config/api-map'
+import { trackEvent } from "@/services/metricsClient";
 
 export type Ticket = {
   id: number
@@ -63,4 +64,14 @@ export async function listMyTickets(filter: TicketFilter = 'all'): Promise<Ticke
 export async function resolveTicket(id: number): Promise<TicketRow> {
   const { data } = await api.put(`/tickets/${id}/resolve`)
   return data as TicketRow
+}
+
+
+
+export async function closeTicket(ticketId: number, payload: any) {
+  const { data } = await api.patch(`/tickets/${ticketId}`, payload);
+
+  await trackEvent("ticket_closed", { ticketId });
+
+  return data;
 }
