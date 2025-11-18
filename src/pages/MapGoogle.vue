@@ -80,6 +80,9 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { loadGoogleMaps } from '@/lib/gmaps'
 import { fetchHomeData, type Visit } from '@/services/home'
 
+import { useAuth } from '@/store/auth'
+import { sendCurrentPosition } from '@/services/location'
+
 type GMap = google.maps.Map
 type GMarker = google.maps.Marker
 type GPolyline = google.maps.Polyline
@@ -87,6 +90,29 @@ type GPolyline = google.maps.Polyline
 /* UI */
 const mapEl = ref<HTMLDivElement | null>(null)
 const sheetOpen = ref(true)
+
+
+// Store de autenticación: de aquí sacamos el id del usuario
+const auth = useAuth()
+
+// Timer para enviar la ubicación cada cierto tiempo
+let locationTimer: any = null
+
+// Envía la posición actual del técnico al backend
+async function reportCurrentPosition() {
+  const userId = auth.user?.id
+  if (!userId) return  // si no hay usuario logueado, no hacemos nada
+
+  try {
+    await sendCurrentPosition(userId)
+    console.log('Ubicación enviada para el usuario', userId)
+  } catch (e) {
+    console.warn('Error al enviar ubicación', e)
+  }
+}
+
+
+
 
 /* Google Maps */
 let map: GMap | null = null
@@ -322,6 +348,24 @@ async function buildRoute(g: typeof google) {
 
 
 /* ---------- Lifecycle ---------- */
+
+/*-- Enviar ubicación una vez al entrar, y luego cada 60 segundos
+onMounted(() => {
+  reportCurrentPosition()
+  locationTimer = setInterval(reportCurrentPosition, 60_000) // 60.000 ms = 60s
+})
+--*/
+
+onMounted(() => {
+  // ⚠️ SOLO PARA PROBAR: id fijo
+  const userId = 1;
+
+  sendCurrentPosition(userId).catch((e) => {
+    console.warn("Error al enviar ubicación desde MapGoogle:", e);
+  });
+});
+
+
 onMounted(async () => {
   const g = await loadGoogleMaps()
 
@@ -361,6 +405,13 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(clearMap)
+
+onBeforeUnmount(() => {
+  if (locationTimer) {
+    clearInterval(locationTimer)
+  }
+})
+
 </script>
 
 
