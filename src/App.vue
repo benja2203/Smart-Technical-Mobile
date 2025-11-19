@@ -27,10 +27,6 @@
               <ion-icon :icon="mapOutline" slot="start" />
               <ion-label>Rutas</ion-label>
             </ion-item>
-            <ion-item router-link="/tabs/calendar">
-              <ion-icon :icon="calendarOutline" slot="start" />
-              <ion-label>Calendario</ion-label>
-            </ion-item>
           </ion-menu-toggle>
         </ion-list>
 

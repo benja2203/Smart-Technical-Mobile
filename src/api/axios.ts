@@ -54,12 +54,8 @@ api.interceptors.response.use(
 );
 
 
-const instance = axios.create({
-  baseURL: import.meta.env?.VITE_API_BASE || "https://smarttechnical.up.railway.app",
-});
-
-// ⬇️ Agrega este interceptor
-instance.interceptors.response.use(
+// Agregar el interceptor de errores a la instancia "api" principal
+api.interceptors.response.use(
   (res) => res,
   async (error) => {
     try {
@@ -73,4 +69,4 @@ instance.interceptors.response.use(
   }
 );
 
-export default instance;
+export default api;  // ✅ Exportar "api" como default también
