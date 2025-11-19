@@ -1,6 +1,6 @@
 // src/services/location.ts
 import { Geolocation } from "@capacitor/geolocation";
-import api from "@/api/axios"; // 👈 IMPORT DEFAULT
+import api from "@/api/axios"; // IMPORT_DEFAULT
 
 export async function sendCurrentPosition(userId: number): Promise<void> {
   console.log("sendCurrentPosition() llamado con userId =", userId);
@@ -10,12 +10,19 @@ export async function sendCurrentPosition(userId: number): Promise<void> {
   });
 
   const payload = {
-    user_id: userId,
-    lat: coords.latitude,
-    lng: coords.longitude,
+    id_user: userId,
+    address: null,
+    latitude: coords.latitude,
+    longitude: coords.longitude,
   };
 
   console.log("Enviando payload a la API:", payload);
 
-  await api.post("/technicians/location", payload);
+  try {
+    const response = await api.post("/position", payload);
+    console.log("Respuesta de la API:", response.data);
+  } catch (error) {
+    console.error("Error al enviar posición:", error);
+    throw error;
+  }
 }

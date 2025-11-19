@@ -53,7 +53,6 @@
                 <td :style="td">{{ r.address || '-' }}</td>
                 <td :style="td">{{ formattedDate(r.fecha_realizar_servicio) }}</td>
 
-                <!-- Acción (con .stop para no abrir modal al cerrar desde la tabla) -->
                 <td :style="td" @click.stop>
                   <ion-button v-if="!isResolved(r)" size="small" @click="closeFromTable(r.id)">
                     Cerrar
@@ -145,7 +144,7 @@
                 v-if="canClose(selected)"
                 class="btn btn-green"
                 @click="closeFromModal(selected.id)"
-                >
+              >
                 Cerrar ticket
               </button>
             </div>
@@ -153,11 +152,23 @@
         </div>
       </ion-modal>
 
+      <!-- Modal de Calificación NPS -->
+      <RatingModal
+        :is-open="ratingModalOpen"
+        :ticket-id="ticketToRate?.id || 0"
+        :presenting-element="presentingEl"
+        @dismiss="onRatingModalDismiss"
+        @submit="onRatingSubmit"
+      />
+
+      <!-- ✅ Toast con binding dinámico y posición abajo -->
       <ion-toast
         :is-open="toast.show"
         :message="toast.msg"
-        :duration="1800"
-        @didDismiss="toast = { show:false, msg:'' }"
+        :duration="2500"
+        :color="toast.color"
+        position="bottom"
+        @didDismiss="toast.show = false"
       />
     </ion-content>
   </ion-page>
@@ -171,38 +182,37 @@ import {
 } from '@ionic/vue'
 import { onMounted, reactive, ref, nextTick } from 'vue'
 import { listMyTickets, resolveTicket, type TicketRow, type TicketFilter } from '@/services/tickets'
+import { submitNPSRating } from '@/services/nps'
+import RatingModal from '@/components/RatingModal.vue'
 import type { CSSProperties } from 'vue'
 import { alertController } from '@ionic/vue'
 
-
-// (opcional pero recomendado) registra íconos para evitar warnings
 import { addIcons } from 'ionicons'
 import { locationOutline, copyOutline, navigateOutline, closeOutline } from 'ionicons/icons'
 addIcons({ locationOutline, copyOutline, navigateOutline, closeOutline })
 
-/* estilos de tabla */
 const th = { textAlign: 'left', borderBottom: '1px solid #ddd', padding: '8px' } as const satisfies CSSProperties
 const td = { borderBottom: '1px solid #f0f0f0', padding: '8px' } as const satisfies CSSProperties
 
-/* estado */
 const filter = ref<TicketFilter>('all')
 const rows = ref<TicketRow[]>([])
 const loading = ref(false)
 const refreshKey = ref(0)
-const toast = reactive({ show:false, msg:'' })
+const toast = reactive({ show:false, msg:'', color:'success' })
 
-/* modal */
 const modalOpen = ref(false)
 const modalKey  = ref(0)
 const selected  = ref<TicketRow | null>(null)
-const presentingEl = ref<HTMLElement | null>(null) // para iOS sheet modal
+const presentingEl = ref<HTMLElement | null>(null)
+
+const ratingModalOpen = ref(false)
+const ticketToRate = ref<TicketRow | null>(null)
 
 onMounted(async () => {
   presentingEl.value = document.querySelector('ion-router-outlet') || document.body
   await load()
 })
 
-/* helpers UI */
 function statusName(r: TicketRow): string {
   if (r.id_status === 2) return 'Activo'
   if (r.id_status === 3) return 'Terminado'
@@ -211,21 +221,25 @@ function statusName(r: TicketRow): string {
   if (s.includes('terminated') || s.includes('terminado') || s.includes('resolved')) return 'Terminado'
   return '—'
 }
+
 function isResolved(r: TicketRow): boolean {
   if (typeof r.id_status === 'number') return r.id_status === 3
   const s = (r.status || '').toLowerCase()
   return s.includes('terminado') || s.includes('resolved') || s.includes('terminated')
 }
+
 function formattedDate(s?: string): string {
   if (!s) return '-'
   const d = new Date(s); return isNaN(d.getTime()) ? '-' : d.toLocaleString()
 }
+
 function googleLink(r: TicketRow) {
   if (r.latitude != null && r.longitude != null)
     return `https://www.google.com/maps/search/?api=1&query=${r.latitude},${r.longitude}`
   if (r.address) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`
   return '#'
 }
+
 function canClose(r?: TicketRow | null) {
   return !!r && !isResolved(r)
 }
@@ -244,8 +258,6 @@ async function confirmClose(): Promise<boolean> {
   return role === 'confirm'
 }
 
-
-/* data */
 async function load() {
   loading.value = true
   try {
@@ -253,27 +265,63 @@ async function load() {
   } catch (e) {
     toast.show = true
     toast.msg = 'Error al cargar tickets'
+    toast.color = 'danger'
   } finally {
     loading.value = false
   }
 }
+
 function onFilterChange(e: CustomEvent) {
   filter.value = e.detail.value as TicketFilter
   load()
 }
 
-/* abrir / cerrar modal */
 function openTicket(r: TicketRow) {
   selected.value = r
   modalOpen.value = true
 }
+
 function onModalClosed() {
   modalOpen.value = false
   selected.value = null
-  modalKey.value++ // fuerza re-montaje -> el modal vuelve a abrir siempre
+  modalKey.value++
 }
 
-/* acciones */
+function openRatingModal(ticket: TicketRow) {
+  ticketToRate.value = ticket
+  ratingModalOpen.value = true
+}
+
+function onRatingModalDismiss() {
+  ratingModalOpen.value = false
+  ticketToRate.value = null
+}
+
+async function onRatingSubmit(rating: number) {
+  if (!ticketToRate.value) return
+
+  try {
+    const customerId = (ticketToRate.value as any).id_customer || (ticketToRate.value as any).customer_id || 1
+    
+    await submitNPSRating(
+      ticketToRate.value.id,
+      rating,
+      customerId
+    )
+
+    toast.show = true
+    toast.msg = '¡Gracias por su calificación!'
+    toast.color = 'success'
+    
+    onRatingModalDismiss()
+  } catch (error: any) {
+    console.error('Error al enviar NPS:', error)
+    toast.show = true
+    toast.msg = error.message || 'Error al enviar calificación'
+    toast.color = 'danger'
+  }
+}
+
 async function closeFromTable(id: number) {
   const ok = await confirmClose()
   if (!ok) return
@@ -281,7 +329,6 @@ async function closeFromTable(id: number) {
   loading.value = true
   let removed: TicketRow | undefined
   try {
-    // optimista
     removed = rows.value.find(r => r.id === id)
     rows.value = rows.value.filter(r => r.id !== id)
     refreshKey.value++
@@ -291,11 +338,19 @@ async function closeFromTable(id: number) {
     await load()
 
     toast.show = true
-    toast.msg = 'Ticket resuelto'
+    toast.msg = 'Ticket se ha cerrado correctamente'
+    toast.color = 'success'
+
+    if (removed) {
+      setTimeout(() => {
+        openRatingModal(removed!)
+      }, 500)
+    }
   } catch {
     if (removed) rows.value = [removed, ...rows.value]
     toast.show = true
     toast.msg = 'No se pudo resolver el ticket'
+    toast.color = 'danger'
   } finally {
     loading.value = false
   }
@@ -305,15 +360,25 @@ async function closeFromModal(id: number) {
   const ok = await confirmClose()
   if (!ok) return
 
+  const ticketClosed = selected.value
+
   try {
     await resolveTicket(id)
     toast.show = true
-    toast.msg = 'Ticket resuelto'
+    toast.msg = 'Ticket se ha cerrado correctamente'
+    toast.color = 'success'
     onModalClosed()
     await load()
+
+    if (ticketClosed) {
+      setTimeout(() => {
+        openRatingModal(ticketClosed)
+      }, 500)
+    }
   } catch {
     toast.show = true
     toast.msg = 'No se pudo resolver el ticket'
+    toast.color = 'danger'
   }
 }
 
@@ -323,13 +388,13 @@ async function copy(text?: string) {
     await navigator.clipboard.writeText(text)
     toast.show = true
     toast.msg = 'Dirección copiada'
+    toast.color = 'dark'
   } catch {
     toast.show = true
     toast.msg = 'No se pudo copiar'
+    toast.color = 'danger'
   }
 }
-
-
 </script>
 
 <style scoped>
