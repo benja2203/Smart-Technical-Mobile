@@ -98,3 +98,191 @@ async function confirmLogout() {
   await alert.present()
 }
 </script>
+
+
+<style scoped>
+/* ============ MENÚ HEADER ============ */
+ion-menu ion-header {
+  background: linear-gradient(135deg, #6478e6 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(100, 120, 230, 0.25);
+}
+
+ion-menu ion-toolbar {
+  --background: transparent;
+  --color: white;
+  --ion-color-tertiary: transparent;
+}
+
+ion-menu ion-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ============ CONTENIDO DEL MENÚ ============ */
+ion-menu ion-content {
+  --background: var(--ion-background-color);
+}
+
+/* ============ LISTA PRINCIPAL ============ */
+ion-menu ion-list {
+  --background: transparent;
+  --ion-list-background: transparent;
+  padding: 12px 0;
+}
+
+ion-menu ion-list:first-of-type {
+  padding-top: 8px;
+}
+
+/* ============ ITEMS DEL MENÚ ============ */
+ion-menu ion-item {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --inner-padding-end: 0;
+  margin: 6px 8px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  --background: transparent;
+  --ion-background-color: transparent;
+  min-height: 48px;
+}
+
+ion-menu ion-item:hover {
+  --background: rgba(100, 120, 230, 0.1);
+  transform: translateX(6px);
+}
+
+ion-menu ion-item.router-link-active,
+ion-menu ion-item.active {
+  --background: linear-gradient(90deg, rgba(100, 120, 230, 0.15) 0%, transparent 100%);
+  border-left: 4px solid #6478e6;
+  --padding-start: 8px;
+}
+
+ion-menu ion-item.router-link-active ion-icon,
+ion-menu ion-item.active ion-icon {
+  color: #6478e6;
+}
+
+ion-menu ion-item.router-link-active ion-label,
+ion-menu ion-item.active ion-label {
+  font-weight: 700;
+  color: #6478e6;
+}
+
+/* ============ ICONOS DEL MENÚ ============ */
+ion-menu ion-icon[slot="start"] {
+  margin-right: 14px;
+  color: #999;
+  font-size: 22px;
+  transition: all 0.3s ease;
+}
+
+ion-menu ion-item:hover ion-icon[slot="start"] {
+  color: #6478e6;
+}
+
+/* ============ LABELS DEL MENÚ ============ */
+ion-menu ion-label {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--ion-text-color);
+  transition: all 0.3s ease;
+}
+
+/* ============ DIVIDER (CUENTA) ============ */
+ion-menu ion-item-divider {
+  background: rgba(100, 120, 230, 0.08);
+  color: #6478e6;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 16px 12px 8px;
+  margin: 12px 0;
+  border-bottom: 1px solid rgba(100, 120, 230, 0.1);
+}
+
+/* ============ BOTÓN CERRAR SESIÓN ============ */
+ion-menu ion-item[button][detail="false"] {
+  margin: 8px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  --background: rgba(220, 53, 69, 0.1);
+}
+
+ion-menu ion-item[button][detail="false"]:hover {
+  --background: rgba(220, 53, 69, 0.15);
+  transform: translateX(4px);
+}
+
+ion-menu ion-item[button][detail="false"] ion-icon[slot="start"] {
+  color: #dc3545;
+}
+
+ion-menu ion-item[button][detail="false"] ion-label {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* ============ SEPARADORES DE LISTA ============ */
+ion-menu ion-list[lines="full"] {
+  --ion-item-border-color: rgba(100, 120, 230, 0.1);
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 480px) {
+  ion-menu ion-title {
+    font-size: 16px;
+  }
+  
+  ion-menu ion-label {
+    font-size: 14px;
+  }
+  
+  ion-menu ion-icon[slot="start"] {
+    font-size: 20px;
+  }
+}
+
+/* ============ DARK MODE ============ */
+@media (prefers-color-scheme: dark) {
+  ion-menu ion-item:hover {
+    --background: rgba(100, 120, 230, 0.15);
+  }
+  
+  ion-menu ion-item.router-link-active,
+  ion-menu ion-item.active {
+    --background: linear-gradient(90deg, rgba(100, 120, 230, 0.2) 0%, transparent 100%);
+  }
+  
+  ion-menu ion-icon[slot="start"] {
+    color: #888;
+  }
+  
+  ion-menu ion-item:hover ion-icon[slot="start"] {
+    color: #7c9ff7;
+  }
+  
+  ion-menu ion-label {
+    color: #e0e0e0;
+  }
+  
+  ion-menu ion-item-divider {
+    background: rgba(100, 120, 230, 0.12);
+    color: #7c9ff7;
+    border-bottom-color: rgba(100, 120, 230, 0.15);
+  }
+  
+  ion-menu ion-item[button][detail="false"] {
+    --background: rgba(220, 53, 69, 0.12);
+  }
+  
+  ion-menu ion-item[button][detail="false"]:hover {
+    --background: rgba(220, 53, 69, 0.18);
+  }
+}
+</style>

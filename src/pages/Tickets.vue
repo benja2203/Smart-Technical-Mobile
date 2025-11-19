@@ -398,31 +398,466 @@ async function copy(text?: string) {
 </script>
 
 <style scoped>
-.modal-root { padding: 12px; }
-.modal-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 6px 2px 10px;
-}
-.card {
-  background: var(--ion-background-color);
-  border: 1px solid rgba(255,255,255,.06);
+/* ============ TABLA PRINCIPAL ============ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  overflow: hidden;
   border-radius: 12px;
-  padding: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  background: var(--ion-background-color);
 }
-.row {
-  display:flex; justify-content:space-between; align-items:flex-start;
-  gap: 12px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.06);
-}
-.row:last-child { border-bottom:none; }
-.label { opacity:.7; min-width:120px; }
-.value { font-weight:600; }
-.value--withicon { display:flex; align-items:center; gap:6px; }
 
-.actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
-.btn {
-  display:inline-flex; align-items:center; justify-content:center;
-  padding: 10px 12px; border-radius: 10px; font-weight: 600; border: none; cursor: pointer;
+/* HEADER de tabla */
+table thead {
+  background: linear-gradient(135deg, #6478e6 0%, #764ba2 100%);
 }
-.btn-primary { background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); text-decoration:none; }
-.btn-green   { background: #10b981; color: white; }
+
+table thead tr {
+  border: none;
+}
+
+table th {
+  text-align: left;
+  padding: 16px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  color: white;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: none;
+}
+
+/* BODY de tabla */
+table tbody tr {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  background: var(--ion-background-color);
+}
+
+table tbody tr:hover {
+  background: linear-gradient(90deg, rgba(100, 120, 230, 0.08) 0%, transparent 100%);
+  transform: scale(1.01);
+  box-shadow: inset 0 0 8px rgba(100, 120, 230, 0.1);
+}
+
+table tbody tr:last-child {
+  border-bottom: none;
+}
+
+table td {
+  padding: 14px 12px;
+  font-size: 13px;
+  color: var(--ion-text-color);
+  border: none;
+  vertical-align: middle;
+}
+
+/* ID Column - Destacado */
+table td:first-child {
+  font-weight: 700;
+  color: #6478e6;
+  background: rgba(100, 120, 230, 0.06);
+  border-radius: 6px;
+  margin: 4px;
+  padding: 12px 10px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Status Column - Indicadores */
+table tbody tr td:nth-child(3) {
+  font-weight: 600;
+  padding: 14px 8px;
+}
+
+/* Dirección Column */
+table tbody tr td:nth-child(4) {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ion-text-color-secondary);
+}
+
+/* Fecha Column */
+table tbody tr td:nth-child(5) {
+  color: var(--ion-text-color-secondary);
+  font-size: 12px;
+}
+
+/* Acción Column */
+table tbody tr td:last-child {
+  text-align: center;
+  padding: 10px 8px;
+}
+
+/* ============ PAGINATION ============ */
+table tfoot tr {
+  background: rgba(100, 120, 230, 0.04);
+  border-top: 2px solid rgba(100, 120, 230, 0.2);
+}
+
+table tfoot td {
+  padding: 12px;
+  text-align: center;
+  color: var(--ion-text-color-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ============ FILTROS (SEGMENT) ============ */
+ion-segment {
+  --background: rgba(100, 120, 230, 0.05);
+  margin-bottom: 16px;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+ion-segment-button {
+  border-radius: 8px;
+  --background: transparent;
+  --background-checked: linear-gradient(135deg, #6478e6 0%, #764ba2 100%);
+  --background-hover: rgba(100, 120, 230, 0.1);
+  --color: var(--ion-text-color-secondary);
+  --color-checked: white;
+  --border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+  --indicator-color: transparent;
+}
+
+ion-segment-button:hover {
+  background: rgba(100, 120, 230, 0.1);
+}
+
+/* ============ MODAL STYLES ============ */
+.modal-root {
+  padding: 20px;
+  background: var(--ion-background-color);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 20px;
+  border-bottom: 2px solid rgba(100, 120, 230, 0.2);
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.modal-header strong {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6478e6 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-header ion-button {
+  --color: var(--ion-text-color-secondary);
+}
+
+/* Card dentro del modal */
+.card {
+  background: linear-gradient(135deg, rgba(100, 120, 230, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%);
+  border: 1px solid rgba(100, 120, 230, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Rows en modal */
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(100, 120, 230, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: rgba(100, 120, 230, 0.04);
+  border-radius: 6px;
+  padding: 14px 8px;
+}
+
+.label {
+  opacity: 0.75;
+  min-width: 140px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #6478e6;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.value {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ion-text-color);
+  text-align: right;
+  flex: 1;
+}
+
+.value--withicon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Badge en estado */
+ion-badge {
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+ion-badge[color="success"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+ion-badge[color="warning"] {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+/* ============ BOTONES DE ACCIÓN ============ */
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  border-top: 2px solid rgba(100, 120, 230, 0.2);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  letter-spacing: 0.3px;
+  flex: 1;
+  min-width: 160px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6478e6 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(100, 120, 230, 0.4);
+}
+
+.btn-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.btn-green:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* Buttons en tabla */
+ion-button[size="small"] {
+  --height: 32px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  --background: rgba(100, 120, 230, 0.15);
+  --color: #6478e6;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+ion-button[size="small"]:hover {
+  --background: #6478e6;
+  --color: white;
+  transform: scale(1.05);
+}
+
+/* ============ LOADING & EMPTY STATES ============ */
+.ion-text-center {
+  text-align: center;
+}
+
+.ion-padding {
+  padding: 20px;
+}
+
+ion-skeleton-text {
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  table th,
+  table td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+  
+  table th {
+    padding: 12px 6px;
+  }
+  
+  .modal-root {
+    padding: 16px;
+  }
+  
+  .card {
+    padding: 16px;
+  }
+  
+  .btn {
+    min-width: 120px;
+    padding: 10px 14px;
+  }
+  
+  .label {
+    min-width: 110px;
+    font-size: 12px;
+  }
+  
+  .value {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  table {
+    font-size: 11px;
+  }
+  
+  table th,
+  table td {
+    padding: 8px 4px;
+  }
+  
+  table td:first-child {
+    font-size: 12px;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .label {
+    min-width: auto;
+  }
+  
+  .value {
+    text-align: left;
+  }
+}
+
+/* ============ DARK MODE ============ */
+@media (prefers-color-scheme: dark) {
+  table {
+    background: #2a2a2a;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  
+  table tbody tr {
+    background: #2a2a2a;
+  }
+  
+  table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(100, 120, 230, 0.15) 0%, transparent 100%);
+    box-shadow: inset 0 0 8px rgba(100, 120, 230, 0.15);
+  }
+  
+  table td:first-child {
+    background: rgba(100, 120, 230, 0.12);
+  }
+  
+  table tfoot tr {
+    background: rgba(100, 120, 230, 0.08);
+    border-top-color: rgba(100, 120, 230, 0.3);
+  }
+  
+  .card {
+    background: linear-gradient(135deg, rgba(100, 120, 230, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border-color: rgba(100, 120, 230, 0.25);
+  }
+  
+  .row {
+    border-bottom-color: rgba(100, 120, 230, 0.15);
+  }
+  
+  .row:hover {
+    background: rgba(100, 120, 230, 0.1);
+  }
+  
+  .modal-header {
+    border-bottom-color: rgba(100, 120, 230, 0.3);
+  }
+  
+  .actions {
+    border-top-color: rgba(100, 120, 230, 0.3);
+  }
+  
+  ion-segment {
+    --background: rgba(100, 120, 230, 0.08);
+  }
+  
+  ion-button[size="small"] {
+    --background: rgba(100, 120, 230, 0.2);
+  }
+}
 </style>

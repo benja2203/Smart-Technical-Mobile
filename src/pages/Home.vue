@@ -233,3 +233,180 @@ onMounted(() => {
   )
 })
 </script>
+
+
+<style scoped>
+/* Cards con sombra sutil y bordes redondeados */
+ion-card {
+  --ion-background-color: var(--ion-card-background);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  margin-bottom: 16px;
+}
+
+ion-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Headers de cards con fondo sutil */
+ion-card-header {
+  background: linear-gradient(135deg, rgba(100, 120, 230, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%);
+  border-radius: 12px 12px 0 0;
+  padding: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+ion-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+ion-card-subtitle {
+  font-size: 13px;
+  color: var(--ion-text-color-secondary);
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+/* Lists con estilo mejorado */
+ion-list {
+  --ion-background-color: transparent;
+  --ion-list-background: transparent;
+}
+
+ion-item {
+  --background: transparent;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background-color 0.2s ease;
+}
+
+ion-item:hover {
+  --background: rgba(100, 120, 230, 0.05);
+}
+
+ion-item:last-child {
+  border-bottom: none;
+}
+
+ion-label {
+  --color: var(--ion-text-color);
+}
+
+ion-label h3 {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+ion-label p {
+  font-size: 13px;
+  color: var(--ion-text-color-secondary);
+  opacity: 0.85;
+}
+
+ion-label small {
+  font-size: 12px;
+  color: var(--ion-text-color-secondary);
+  opacity: 0.75;
+}
+
+/* Chips mejorados */
+ion-chip {
+  --background: transparent;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+ion-chip[color="success"] {
+  --background: rgba(16, 185, 129, 0.1);
+  --color: #10b981;
+}
+
+ion-chip[color="warning"] {
+  --background: rgba(245, 158, 11, 0.1);
+  --color: #f59e0b;
+}
+
+/* Card content con padding consistente */
+ion-card-content {
+  padding: 16px;
+}
+
+/* Buttons dentro de cards */
+ion-button[fill="outline"] {
+  --border-color: rgba(100, 120, 230, 0.3);
+  --color: #6478e6;
+  border-radius: 8px;
+  height: 40px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+ion-button[fill="outline"]:hover {
+  --border-color: rgba(100, 120, 230, 0.6);
+  background: rgba(100, 120, 230, 0.05);
+}
+
+/* Icons */
+ion-icon {
+  color: #6478e6;
+}
+
+ion-icon[slot="start"] {
+  margin-right: 12px;
+  color: #999;
+}
+
+/* Skeleton loading */
+ion-skeleton-text {
+  border-radius: 8px;
+}
+
+/* Content padding */
+ion-content {
+  --padding-bottom: 20px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  ion-card {
+    margin-bottom: 12px;
+  }
+  
+  ion-card-header {
+    padding: 12px;
+  }
+  
+  ion-card-title {
+    font-size: 15px;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  ion-card {
+    --ion-background-color: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  ion-card-header {
+    background: linear-gradient(135deg, rgba(100, 120, 230, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  ion-item {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  ion-item:hover {
+    --background: rgba(100, 120, 230, 0.1);
+  }
+}
+</style>
